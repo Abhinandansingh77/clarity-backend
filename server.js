@@ -20,8 +20,8 @@ app.get("/", async (req, res) => {
     const result = await pool.query("SELECT NOW()");
     res.send(`Database connected ✅ Server time: ${result.rows[0].now}`);
   } catch (err) {
-    console.error(err);
-    res.send("Database connection failed ❌");
+    console.error("DB ERROR:", err);
+    res.status(500).send(err.message);
   }
 });
 
