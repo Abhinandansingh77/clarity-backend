@@ -1,13 +1,14 @@
-const generateLesson = require("../services/lessonGenerator");
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-
-if (req.body.beta_key !== "BETA2026") {
-  return res.status(403).json({ error: "Beta access only" });
-}
+const generateLesson = require("../services/lessonGenerator");
 
 router.post("/", async (req, res) => {
+  // 🔒 Beta gate (must be INSIDE the route)
+  if (req.body.beta_key !== "BETA2026") {
+    return res.status(403).json({ error: "Beta access only" });
+  }
+
   try {
     const { name, phone_number, level, delivery_time } = req.body;
 
@@ -46,39 +47,37 @@ router.post("/", async (req, res) => {
 
     const program = programResult.rows[0];
 
-    // Enroll user
-    const userProgram = await pool.query(
+    // Enroll user into program
+    const userProgramResult = await pool.query(
       `INSERT INTO user_programs 
-       (user_id, program_id, level, delivery_time, start_date) 
-       VALUES ($1, $2, $3, $4, CURRENT_DATE + INTERVAL '1 day')
+       (user_id, program_id, level, delivery_time, start_date)
+       VALUES ($1, $2, $3, $4, CURRENT_DATE)
        RETURNING *`,
       [user.id, program.id, level, delivery_time]
     );
-    // Generate Day 1 lesson
-const lessonText = await generateLesson(level);
 
-// Store lesson in database
-await pool.query(
-  `INSERT INTO generated_lessons
-   (user_program_id, day_number, script, whatsapp_text)
-   VALUES ($1, $2, $3, $4)`,
-  [
-    userProgram.rows[0].id,
-    1,
-    lessonText,
-    lessonText
-  ]
-);
+    const userProgram = userProgramResult.rows[0];
+
+    // Generate Day 1 lesson
+    const lessonText = await generateLesson(level);
+
+    // Store lesson
+    await pool.query(
+      `INSERT INTO generated_lessons
+       (user_program_id, day_number, script, whatsapp_text)
+       VALUES ($1, $2, $3, $4)`,
+      [userProgram.id, 1, lessonText, lessonText]
+    );
 
     res.json({
       success: true,
       message: "User enrolled successfully",
-      user_program: userProgram.rows[0],
+      user_program: userProgram,
     });
 
   } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Onboarding error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
