@@ -1,19 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const startScheduler = require("./services/scheduler");
-
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 const pool = require("./db");
 const onboardingRoutes = require("./routes/onboarding");
+const generateLesson = require("./services/lessonGenerator");
 
 const app = express();
 
+/* -------------------- MIDDLEWARE -------------------- */
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+/* -------------------- ROUTES -------------------- */
 app.use("/api/onboarding", onboardingRoutes);
 
 app.get("/", async (req, res) => {
@@ -22,20 +22,9 @@ app.get("/", async (req, res) => {
     res.send(`Database connected ✅ Server time: ${result.rows[0].now}`);
   } catch (err) {
     console.error("DB ERROR:", err);
-    res.status(500).send(err.message);
+    res.status(500).send("Database connection failed");
   }
 });
-
-// setTimeout(() => {
-//   startScheduler();
-// }, 5000);
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-const generateLesson = require("./services/lessonGenerator");
 
 app.get("/test-ai", async (req, res) => {
   try {
@@ -43,7 +32,18 @@ app.get("/test-ai", async (req, res) => {
     res.send(lesson);
   } catch (err) {
     console.error("AI TEST ERROR:", err);
-    res.status(500).send(err.message);
+    res.status(500).send("AI generation failed");
   }
 });
 
+/* -------------------- START SERVER -------------------- */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+/*
+⚠️ Scheduler intentionally disabled.
+We will enable it AFTER Webflow onboarding is stable.
+*/
