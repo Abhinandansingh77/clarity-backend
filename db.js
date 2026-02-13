@@ -3,7 +3,7 @@ const { Pool } = require("pg");
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-  family: 4 // 👈 force IPv4
+  family: 4
 });
 
 pool.on("connect", () => {
@@ -15,4 +15,3 @@ pool.on("error", (err) => {
 });
 
 module.exports = pool;
-
