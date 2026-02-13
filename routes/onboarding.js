@@ -11,10 +11,13 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const { name, phone_number, level, delivery_time } = req.body;
+    const { name, phone_number, delivery_time } = req.body;
+const level = req.body.level && req.body.level.trim() !== ""
+  ? req.body.level
+  : "overwhelmed";
 
     // Basic validation
-    if (!name || !phone_number || !level || !delivery_time) {
+    if (!name || !phone_number || !delivery_time) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
