@@ -3,6 +3,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 
+if (req.body.beta_key !== "BETA2026") {
+  return res.status(403).json({ error: "Beta access only" });
+}
+
 router.post("/", async (req, res) => {
   try {
     const { name, phone_number, level, delivery_time } = req.body;
