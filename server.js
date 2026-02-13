@@ -25,7 +25,9 @@ app.get("/", async (req, res) => {
   }
 });
 
-startScheduler();
+setTimeout(() => {
+  startScheduler();
+}, 5000);
 
 const PORT = process.env.PORT || 3000;
 
