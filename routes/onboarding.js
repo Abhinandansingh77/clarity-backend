@@ -4,6 +4,7 @@ const pool = require("../db");
 const generateLesson = require("../services/lessonGenerator");
 
 router.post("/", async (req, res) => {
+    console.log("FRAMER WEBHOOK BODY:", req.body);
   // 🔒 Beta gate (must be INSIDE the route)
   if (req.body.beta_key !== "BETA2026") {
     return res.status(403).json({ error: "Beta access only" });
