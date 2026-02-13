@@ -5,6 +5,7 @@ require("dotenv").config();
 const pool = require("./db");
 const onboardingRoutes = require("./routes/onboarding");
 const generateLesson = require("./services/lessonGenerator");
+const startScheduler = require("./services/scheduler");
 
 const app = express();
 
