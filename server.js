@@ -43,6 +43,10 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+setTimeout(() => {
+  startScheduler();
+}, 5000);
+
 /*
 ⚠️ Scheduler intentionally disabled.
 We will enable it AFTER Webflow onboarding is stable.
