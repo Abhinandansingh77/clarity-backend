@@ -21,21 +21,28 @@ function startScheduler() {
 
       console.log("Checking deliveries at", currentTime);
 
-      // Get all active programs that haven't delivered today
+      // Get all active users who haven't received today's lesson
       const result = await pool.query(`
         SELECT *
         FROM user_programs
         WHERE status = 'active'
-          AND (last_delivered_at IS NULL 
+          AND (last_delivered_at IS NULL
                OR DATE(last_delivered_at) < CURRENT_DATE)
       `);
 
       if (result.rows.length === 0) {
-        console.log("No active users");
+        console.log("No users scheduled right now");
         return;
       }
 
       for (const userProgram of result.rows) {
+        // Calculate course day based on start_date
+        const startDate = dayjs(userProgram.start_date).tz("Asia/Kolkata");
+        const courseDay = now.diff(startDate, "day") + 1;
+
+        if (courseDay <= 0) continue;
+
+        // Check delivery time window (±5 minutes)
         const deliveryTime = dayjs(
           userProgram.delivery_time,
           "HH:mm"
@@ -45,35 +52,31 @@ function startScheduler() {
           now.diff(deliveryTime, "minute")
         );
 
-        // Allow 5-minute window
         if (diffMinutes > 5) continue;
 
         console.log(
           "Sending lesson to user:",
           userProgram.user_id,
           "Day:",
-          userProgram.current_day
+          courseDay
         );
 
-        // Get or generate lesson
+        // Fetch or generate lesson
         const lessonResult = await pool.query(
           `SELECT * FROM generated_lessons
            WHERE user_program_id = $1
            AND day_number = $2`,
-          [userProgram.id, userProgram.current_day]
+          [userProgram.id, courseDay]
         );
 
         let lesson;
 
         if (lessonResult.rows.length === 0) {
-          console.log(
-            "Generating lesson for Day",
-            userProgram.current_day
-          );
+          console.log("Generating lesson for Day", courseDay);
 
           const lessonText = await generateLesson(
             userProgram.level,
-            userProgram.current_day
+            courseDay
           );
 
           const inserted = await pool.query(
@@ -83,7 +86,7 @@ function startScheduler() {
              RETURNING *`,
             [
               userProgram.id,
-              userProgram.current_day,
+              courseDay,
               lessonText,
               lessonText
             ]
@@ -110,21 +113,20 @@ function startScheduler() {
 
         console.log(
           "Delivered Day",
-          userProgram.current_day,
+          courseDay,
           "to",
           user.phone_number
         );
 
-        // Mark delivered
+        // Mark delivery (DO NOT increment day)
         await pool.query(
           `UPDATE user_programs
-           SET last_delivered_at = NOW(),
-               current_day = current_day + 1
+           SET last_delivered_at = NOW()
            WHERE id = $1`,
           [userProgram.id]
         );
 
-        // Deliver only one per minute (safety)
+        // Safety: send only one lesson per minute
         break;
       }
     } catch (err) {
